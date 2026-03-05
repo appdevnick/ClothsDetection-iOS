@@ -20,6 +20,12 @@ struct SavedItemDetail: Identifiable {
     let isSourceUnavailable: Bool
 }
 
+struct SourcePhotoDetail: Identifiable {
+    let id: UUID
+    let image: UIImage
+    let assetIdentifier: String
+}
+
 // MARK: - View Model
 
 @MainActor
@@ -42,6 +48,7 @@ class ClothingDetectionViewModel: ObservableObject {
     @Published var savedItemThumbnails: [UUID: UIImage] = [:]
     @Published var savedItemsStatusMessage: String?
     @Published var selectedSavedItemDetail: SavedItemDetail?
+    @Published var selectedSourcePhoto: SourcePhotoDetail?
     @Published var isLoadingSavedItemDetail: Bool = false
     @Published var croppedImages: [CroppedImage] = []
     @Published var selectedClothingItem: ClothingItem?
@@ -184,6 +191,43 @@ class ClothingDetectionViewModel: ObservableObject {
 
     func clearSavedItemDetail() {
         selectedSavedItemDetail = nil
+    }
+
+    func showSourcePhoto(for item: ClothingItem) async {
+        guard let assetIdentifier = item.photoAssetIdentifier,
+              !assetIdentifier.hasPrefix("unavailable:") else {
+            savedItemsStatusMessage = "Original photo source is unavailable."
+            return
+        }
+
+        do {
+            let sourceImage = try await loadSourceImageFromPhotos(assetIdentifier: assetIdentifier)
+            selectedSourcePhoto = SourcePhotoDetail(
+                id: item.id,
+                image: sourceImage,
+                assetIdentifier: assetIdentifier
+            )
+            savedItemsStatusMessage = nil
+        } catch {
+            savedItemsStatusMessage = "Unable to load original photo."
+        }
+    }
+
+    func clearSourcePhoto() {
+        selectedSourcePhoto = nil
+    }
+
+    func deleteAllSavedItems() async {
+        do {
+            try await clothingItemRepository.deleteAllItems()
+            savedItems = []
+            savedItemThumbnails = [:]
+            selectedSavedItemDetail = nil
+            selectedSourcePhoto = nil
+            savedItemsStatusMessage = "Deleted all saved items."
+        } catch {
+            savedItemsStatusMessage = "Failed to delete saved items."
+        }
     }
 
     func clearResults() {

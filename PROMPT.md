@@ -40,6 +40,7 @@ When changing behavior:
 
 ### Detection Pipeline
 - Input via `PhotosPicker` in `ClothingDetectionView`
+- Picker is configured with `photoLibrary: .shared()` so selected items carry stable local asset identifiers
 - Selected image is loaded as `Data` and downscaled (`ImageProcessor.downscaleImage`)
 - Detection uses Core ML model `best.mlmodel` through Vision
 - Domain mapping from observations to `ClothingItem` happens in `ClothingDetectionUseCase`
@@ -69,14 +70,17 @@ When changing behavior:
 - Saved cards are tappable; tapping opens detail sheet with:
   - cropped preview
   - label, confidence, timestamp, asset identifier
+  - `Open Full Photo` action that presents the original image from Photos when available
 - Thumbnail strategy:
   - Generate and persist thumbnail data at detection-save time
   - Prefer persisted `thumbnailData` for saved cards
   - Fallback to Photos-based crop when needed
   - Fallback to placeholder image when source unavailable
 - Source-availability handling:
-  - Missing `PhotosPickerItem.itemIdentifier` falls back to synthetic `unavailable:<uuid>` identifier for persistence continuity
+  - App requests photo-library usage description and persists the selected item local identifier when available
+  - Defensive fallback to synthetic `unavailable:<uuid>` identifier is retained for persistence continuity
   - Saved-item loading errors are surfaced via non-blocking status messaging, not global detection failure
+  - Debug-only workflow includes a `Delete All (Debug)` action in the saved-items section
 
 ## Core Domain Model Snapshot
 - `ClothingItem` currently contains:
@@ -91,7 +95,7 @@ When changing behavior:
 
 ## Testing State
 - Test framework: Swift Testing (`import Testing`, `@Test`, `#expect`)
-- Active test target currently discovers 13 tests
+- Active test target currently discovers 14 tests
 - Covered areas:
   - Repository save/fetch/delete, ordering, metadata mapping, uniqueness semantics
   - ViewModel persistence and error-state flow assertions

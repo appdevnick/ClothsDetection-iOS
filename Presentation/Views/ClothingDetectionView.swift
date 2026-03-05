@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Photos
 
 struct ClothingDetectionView: View {
     @StateObject private var viewModel: ClothingDetectionViewModel
@@ -54,7 +55,12 @@ struct ClothingDetectionView: View {
     private var headerView: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                PhotosPicker("Pick Image", selection: $viewModel.selectedItem, matching: .images)
+                PhotosPicker(
+                    "Pick Image",
+                    selection: $viewModel.selectedItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                )
                     .buttonStyle(.borderedProminent)
                     .disabled(viewModel.isLoading || viewModel.isCropping)
                 
@@ -118,8 +124,21 @@ struct ClothingDetectionView: View {
     // MARK: - Saved Items Section
     private var savedItemsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Saved Items (\(viewModel.savedItems.count))")
-                .font(.headline)
+            HStack {
+                Text("Saved Items (\(viewModel.savedItems.count))")
+                    .font(.headline)
+                Spacer()
+                if !viewModel.savedItems.isEmpty {
+                    Button("Delete All (Debug)") {
+                        Task {
+                            await viewModel.deleteAllSavedItems()
+                        }
+                    }
+                    .font(.caption)
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                }
+            }
 
             if let statusMessage = viewModel.savedItemsStatusMessage {
                 Text(statusMessage)
@@ -203,6 +222,15 @@ struct ClothingDetectionView: View {
                 }
                 .font(.body)
 
+                if detail.item.photoAssetIdentifier?.hasPrefix("unavailable:") != true {
+                    Button("Open Full Photo") {
+                        Task {
+                            await viewModel.showSourcePhoto(for: detail.item)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+
                 if detail.isSourceUnavailable {
                     Text("Original photo source is unavailable. Showing placeholder preview.")
                         .font(.caption)
@@ -213,6 +241,33 @@ struct ClothingDetectionView: View {
             .padding()
         }
         .navigationTitle("Saved Item")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $viewModel.selectedSourcePhoto, onDismiss: {
+            viewModel.clearSourcePhoto()
+        }) { sourcePhoto in
+            NavigationStack {
+                sourcePhotoDetailView(sourcePhoto)
+            }
+        }
+    }
+
+    private func sourcePhotoDetailView(_ sourcePhoto: SourcePhotoDetail) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Image(uiImage: sourcePhoto.image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(radius: 4)
+
+                Text("Asset: \(sourcePhoto.assetIdentifier)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .navigationTitle("Original Photo")
         .navigationBarTitleDisplayMode(.inline)
     }
 
