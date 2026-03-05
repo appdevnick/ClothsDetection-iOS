@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import SwiftData
 
 // MARK: - Dependency Injection Container
 
@@ -41,16 +42,19 @@ class DIContainer {
     }()
     
     // MARK: - View Models
-    @MainActor func makeClothingDetectionViewModel() -> ClothingDetectionViewModel {
+    @MainActor func makeClothingDetectionViewModel(modelContext: ModelContext) -> ClothingDetectionViewModel {
+        let clothingItemRepository = SwiftDataClothingItemRepository(modelContext: modelContext)
+
         return ClothingDetectionViewModel(
             useCase: clothingDetectionUseCase,
-            croppingUseCase: imageCroppingUseCase
+            croppingUseCase: imageCroppingUseCase,
+            clothingItemRepository: clothingItemRepository
         )
     }
     
     // MARK: - Views
-    @MainActor func makeClothingDetectionView() -> ClothingDetectionView {
-        let viewModel = makeClothingDetectionViewModel()
+    @MainActor func makeClothingDetectionView(modelContext: ModelContext) -> ClothingDetectionView {
+        let viewModel = makeClothingDetectionViewModel(modelContext: modelContext)
         return ClothingDetectionView(viewModel: viewModel)
     }
 }

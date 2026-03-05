@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Photos
 import PhotosUI
 import UIKit
 
@@ -10,6 +11,13 @@ enum ClothingDetectionViewState {
     case loading
     case loaded(DetectionResult)
     case error(ClothingDetectionError)
+}
+
+struct SavedItemDetail: Identifiable {
+    let id: UUID
+    let item: ClothingItem
+    let croppedImage: UIImage
+    let isSourceUnavailable: Bool
 }
 
 // MARK: - View Model
@@ -31,6 +39,11 @@ class ClothingDetectionViewModel: ObservableObject {
     }
     @Published var selectedImage: UIImage?
     @Published var detectionResult: DetectionResult?
+    @Published var savedItems: [ClothingItem] = []
+    @Published var savedItemThumbnails: [UUID: UIImage] = [:]
+    @Published var savedItemsStatusMessage: String?
+    @Published var selectedSavedItemDetail: SavedItemDetail?
+    @Published var isLoadingSavedItemDetail: Bool = false
     @Published var croppedImages: [CroppedImage] = []
     @Published var selectedClothingItem: ClothingItem?
     @Published var isCropping: Bool = false
@@ -38,6 +51,7 @@ class ClothingDetectionViewModel: ObservableObject {
     // MARK: - Private Properties
     private let useCase: ClothingDetectionUseCaseProtocol
     private let croppingUseCase: ImageCroppingUseCaseProtocol
+    private let clothingItemRepository: ClothingItemRepositoryProtocol
     private var selectionTask: Task<Void, Never>?
 
     // MARK: - Computed Properties
@@ -63,9 +77,14 @@ class ClothingDetectionViewModel: ObservableObject {
     }
 
     // MARK: - Initialization
-    init(useCase: ClothingDetectionUseCaseProtocol, croppingUseCase: ImageCroppingUseCaseProtocol) {
+    init(
+        useCase: ClothingDetectionUseCaseProtocol,
+        croppingUseCase: ImageCroppingUseCaseProtocol,
+        clothingItemRepository: ClothingItemRepositoryProtocol
+    ) {
         self.useCase = useCase
         self.croppingUseCase = croppingUseCase
+        self.clothingItemRepository = clothingItemRepository
     }
 
     deinit {
@@ -83,21 +102,41 @@ class ClothingDetectionViewModel: ObservableObject {
             }
 
             selectedImage = downscaledImage
-            await performDetection(on: downscaledImage)
+            await detectClothing(in: downscaledImage, photoAssetIdentifier: item.itemIdentifier)
         } catch {
             guard !Task.isCancelled else { return }
             viewState = .error(.imageProcessingFailed)
         }
     }
 
-    private func performDetection(on image: UIImage) async {
+    func detectClothing(in image: UIImage, photoAssetIdentifier: String?) async {
         viewState = .loading
 
         do {
             let request = ImageProcessingRequest(image: image)
             let result = try await useCase.detectClothing(in: request)
-            viewState = .loaded(result)
-            detectionResult = result
+            let itemsWithThumbnails = enrichItemsWithThumbnails(result.items, sourceImage: image)
+
+            if !itemsWithThumbnails.isEmpty {
+                let resolvedAssetIdentifier = photoAssetIdentifier ?? "unavailable:\(UUID().uuidString)"
+                let createdAt = Date()
+                try await clothingItemRepository.saveDetectedItems(
+                    itemsWithThumbnails,
+                    photoAssetIdentifier: resolvedAssetIdentifier,
+                    createdAt: createdAt
+                )
+                let latestSavedItems = try await clothingItemRepository.fetchAllItems()
+                savedItems = latestSavedItems
+                await preloadThumbnails(for: latestSavedItems)
+            }
+
+            let updatedResult = DetectionResult(
+                items: itemsWithThumbnails,
+                processingTime: result.processingTime,
+                imageSize: result.imageSize
+            )
+            viewState = .loaded(updatedResult)
+            detectionResult = updatedResult
         } catch let error as ClothingDetectionError {
             viewState = .error(error)
         } catch {
@@ -106,6 +145,47 @@ class ClothingDetectionViewModel: ObservableObject {
     }
 
     // MARK: - Public Methods
+    func loadSavedItems() async {
+        do {
+            let latestSavedItems = try await clothingItemRepository.fetchAllItems()
+            savedItems = latestSavedItems
+            savedItemsStatusMessage = nil
+            await preloadThumbnails(for: latestSavedItems)
+        } catch {
+            // Keep detection flow errors separate from saved-items hydration errors.
+            savedItemsStatusMessage = "Saved items are temporarily unavailable."
+        }
+    }
+
+    func showSavedItemDetail(for item: ClothingItem) async {
+        isLoadingSavedItemDetail = true
+        defer { isLoadingSavedItemDetail = false }
+
+        do {
+            let croppedImage = try await loadCroppedImageForSavedItem(item)
+            selectedSavedItemDetail = SavedItemDetail(
+                id: item.id,
+                item: item,
+                croppedImage: croppedImage,
+                isSourceUnavailable: false
+            )
+            savedItemsStatusMessage = nil
+        } catch {
+            let fallbackImage = item.thumbnailData.flatMap(UIImage.init(data:)) ?? placeholderSavedItemImage()
+            selectedSavedItemDetail = SavedItemDetail(
+                id: item.id,
+                item: item,
+                croppedImage: fallbackImage,
+                isSourceUnavailable: true
+            )
+            savedItemsStatusMessage = "Some photo sources are unavailable."
+        }
+    }
+
+    func clearSavedItemDetail() {
+        selectedSavedItemDetail = nil
+    }
+
     func clearResults() {
         selectionTask?.cancel()
         viewState = .idle
@@ -119,7 +199,7 @@ class ClothingDetectionViewModel: ObservableObject {
     func retryDetection() {
         guard let image = selectedImage else { return }
         Task {
-            await performDetection(on: image)
+            await detectClothing(in: image, photoAssetIdentifier: nil)
         }
     }
 
@@ -175,5 +255,147 @@ class ClothingDetectionViewModel: ObservableObject {
 
     func clearCroppedImages() {
         croppedImages = []
+    }
+
+    private func preloadThumbnails(for items: [ClothingItem]) async {
+        for item in items {
+            guard savedItemThumbnails[item.id] == nil else { continue }
+
+            if let thumbnailData = item.thumbnailData,
+               let persistedThumbnail = UIImage(data: thumbnailData) {
+                savedItemThumbnails[item.id] = persistedThumbnail
+                continue
+            }
+
+            if item.photoAssetIdentifier?.hasPrefix("unavailable:") == true {
+                savedItemThumbnails[item.id] = placeholderSavedItemImage()
+                continue
+            }
+
+            if let thumbnail = try? await loadCroppedImageForSavedItem(item) {
+                savedItemThumbnails[item.id] = thumbnail
+            } else {
+                savedItemThumbnails[item.id] = placeholderSavedItemImage()
+            }
+        }
+    }
+
+    private func loadCroppedImageForSavedItem(_ item: ClothingItem) async throws -> UIImage {
+        guard let assetIdentifier = item.photoAssetIdentifier,
+              !assetIdentifier.hasPrefix("unavailable:") else {
+            throw ClothingDetectionError.invalidImage
+        }
+
+        let sourceImage = try await loadSourceImageFromPhotos(assetIdentifier: assetIdentifier)
+        let cropRequest = CropRequest(originalImage: sourceImage, clothingItem: item, padding: 0)
+        let croppedImage = try await croppingUseCase.cropImage(from: cropRequest)
+        return croppedImage.image
+    }
+
+    private func enrichItemsWithThumbnails(_ items: [ClothingItem], sourceImage: UIImage) -> [ClothingItem] {
+        items.map { item in
+            let thumbnailData = makeThumbnailData(for: item, sourceImage: sourceImage)
+            return ClothingItem(
+                id: item.id,
+                label: item.label,
+                confidence: item.confidence,
+                boundingBox: item.boundingBox,
+                imageSize: item.imageSize,
+                createdAt: item.createdAt,
+                photoAssetIdentifier: item.photoAssetIdentifier,
+                thumbnailData: thumbnailData
+            )
+        }
+    }
+
+    private func makeThumbnailData(for item: ClothingItem, sourceImage: UIImage) -> Data? {
+        let imageSize = sourceImage.size
+        let bbox = item.boundingBox
+
+        let cropRect = CGRect(
+            x: bbox.origin.x * imageSize.width,
+            y: (1 - bbox.origin.y - bbox.size.height) * imageSize.height,
+            width: bbox.size.width * imageSize.width,
+            height: bbox.size.height * imageSize.height
+        ).integral
+
+        let boundedRect = cropRect.intersection(CGRect(origin: .zero, size: imageSize))
+        guard !boundedRect.isNull,
+              boundedRect.width > 1,
+              boundedRect.height > 1,
+              let cgImage = sourceImage.cgImage,
+              let croppedCGImage = cgImage.cropping(to: boundedRect) else {
+            return nil
+        }
+
+        let croppedImage = UIImage(cgImage: croppedCGImage, scale: sourceImage.scale, orientation: sourceImage.imageOrientation)
+        let thumbnail = renderSquareThumbnail(from: croppedImage, side: 144)
+        return thumbnail.jpegData(compressionQuality: 0.65)
+    }
+
+    private func renderSquareThumbnail(from image: UIImage, side: CGFloat) -> UIImage {
+        let targetSize = CGSize(width: side, height: side)
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+
+        return renderer.image { _ in
+            let sourceSize = image.size
+            let scale = max(targetSize.width / sourceSize.width, targetSize.height / sourceSize.height)
+            let drawSize = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+            let origin = CGPoint(
+                x: (targetSize.width - drawSize.width) / 2,
+                y: (targetSize.height - drawSize.height) / 2
+            )
+            image.draw(in: CGRect(origin: origin, size: drawSize))
+        }
+    }
+
+    private func loadSourceImageFromPhotos(assetIdentifier: String) async throws -> UIImage {
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
+        guard let asset = assets.firstObject else {
+            throw ClothingDetectionError.invalidImage
+        }
+
+        let options = PHImageRequestOptions()
+        options.isNetworkAccessAllowed = true
+        options.deliveryMode = .highQualityFormat
+        options.version = .current
+
+        return try await withCheckedThrowingContinuation { continuation in
+            PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
+                if let isCancelled = info?[PHImageCancelledKey] as? Bool, isCancelled {
+                    continuation.resume(throwing: ClothingDetectionError.imageProcessingFailed)
+                    return
+                }
+
+                if let error = info?[PHImageErrorKey] as? Error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard let data, let image = UIImage(data: data) else {
+                    continuation.resume(throwing: ClothingDetectionError.imageProcessingFailed)
+                    return
+                }
+
+                continuation.resume(returning: image)
+            }
+        }
+    }
+
+    private func placeholderSavedItemImage() -> UIImage {
+        let size = CGSize(width: 120, height: 120)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor.systemGray5.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+
+            let symbol = UIImage(systemName: "photo")?.withTintColor(.systemGray, renderingMode: .alwaysOriginal)
+            let symbolSize = CGSize(width: 36, height: 36)
+            let symbolOrigin = CGPoint(
+                x: (size.width - symbolSize.width) / 2,
+                y: (size.height - symbolSize.height) / 2
+            )
+            symbol?.draw(in: CGRect(origin: symbolOrigin, size: symbolSize))
+        }
     }
 }

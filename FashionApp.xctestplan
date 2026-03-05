@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "D8C3E3D0-71E0-4A5F-8F55-5C6C09CC8F01",
+      "name" : "Default",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:FashionApp.xcodeproj",
+        "identifier" : "FDF442252F5A020000C4864F",
+        "name" : "FashionAppTests"
+      }
+    }
+  ],
+  "version" : 1
+}

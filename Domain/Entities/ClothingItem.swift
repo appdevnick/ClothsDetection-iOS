@@ -10,6 +10,29 @@ struct ClothingItem {
     let confidence: Float
     let boundingBox: CGRect
     let imageSize: CGSize
+    let createdAt: Date
+    let photoAssetIdentifier: String?
+    let thumbnailData: Data?
+
+    init(
+        id: UUID = UUID(),
+        label: String,
+        confidence: Float,
+        boundingBox: CGRect,
+        imageSize: CGSize,
+        createdAt: Date = .now,
+        photoAssetIdentifier: String? = nil,
+        thumbnailData: Data? = nil
+    ) {
+        self.id = id
+        self.label = label
+        self.confidence = confidence
+        self.boundingBox = boundingBox
+        self.imageSize = imageSize
+        self.createdAt = createdAt
+        self.photoAssetIdentifier = photoAssetIdentifier
+        self.thumbnailData = thumbnailData
+    }
     
     init(from observation: VNRecognizedObjectObservation, imageSize: CGSize) {
         self.id = UUID()
@@ -17,6 +40,9 @@ struct ClothingItem {
         self.confidence = observation.confidence
         self.boundingBox = observation.boundingBox
         self.imageSize = imageSize
+        self.createdAt = .now
+        self.photoAssetIdentifier = nil
+        self.thumbnailData = nil
     }
 }
 

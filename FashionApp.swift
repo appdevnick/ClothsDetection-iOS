@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct FashionApp: App {
@@ -7,5 +8,6 @@ struct FashionApp: App {
             ContentView()
                 .environment(\.container, DIContainer.shared)
         }
+        .modelContainer(for: [ClothingItemRecord.self])
     }
 }

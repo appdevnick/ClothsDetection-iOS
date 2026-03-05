@@ -1,139 +1,128 @@
+# FashionApp - Portable Project Context
 
-# Project Brief: Vision Closet (Portable Context)
-
-This document is a portable context for assistants. Paste the “Assistant Setup Prompt” section into any AI to quickly align it with the project goals, constraints, and conventions.
+Use this document as the single handoff context for new AI assistants.
 
 ## Assistant Setup Prompt (Paste This)
-You are assisting with an iOS app called “Vision Closet.” The app began as an Apple Vision example and is now being expanded into a learning project and a potential shipping product. The app’s core purpose is to allow users to:
-- Take pictures of clothing items
-- Recognize clothing attributes (category, color, pattern, brand when possible)
-- Save items to a virtual wardrobe
-- Create and manage outfits from saved items
+You are assisting with an iOS app named `FashionApp`.
 
-Priorities:
-- Teach and reinforce good iOS/Swift/SwiftUI/Core Data practices
-- Keep the codebase approachable and well-documented
-- Prefer standard Apple frameworks (SwiftUI, Photos/Camera, Vision, Core Data/SwiftData)
-- Favor Swift Concurrency (async/await, actors) where appropriate
-- Avoid introducing unnecessary third-party dependencies
+Primary product direction:
+- Photo-based clothing detection (Vision/Core ML)
+- Persist detected clothing items to a local wardrobe (SwiftData)
+- Show saved wardrobe items with thumbnails and details
+- Keep implementation learning-friendly, production-minded, and TDD-oriented
 
-When proposing changes:
-- Provide minimal, focused edits with clear reasoning
-- Use Swift and SwiftUI idioms
-- Show code snippets with file names where applicable
-- Maintain consistent naming and architecture
-- If you’re unsure of context, ask clarifying questions
+Engineering priorities:
+- Prefer standard Apple frameworks (SwiftUI, PhotosUI/Photos, Vision/Core ML, SwiftData)
+- Prefer async/await and clean DI
+- Keep architecture layered and testable
+- Avoid third-party dependencies unless necessary
+- Use focused edits with clear reasoning
 
-Deliverables should be production-minded but learning-friendly, with comments explaining why, not just how.
+When changing behavior:
+- Add or update tests first for non-trivial logic
+- Keep code changes narrow and explicit
+- Preserve current architecture and naming
+- Call out migration risks when SwiftData models change
 
-## Project Vision
-- A delightful wardrobe app that can realistically ship, but is also a teaching ground for modern iOS patterns.
-- Incremental development: small, shippable improvements; learning through iteration.
-- Accessibility, performance, and privacy respected from the start.
+## Current State (accurate as of March 5, 2026)
 
-## Current State (to be tailored to code)
-Note: This section should reflect the real code. Replace the bullets below with accurate details after code review.
-- Camera/Photo capture: [TBD – e.g., using PHPicker or AVCaptureSession]
-- Vision recognition: [TBD – e.g., VNCoreMLRequest for clothing categories]
-- Data layer: [TBD – Core Data/SwiftData models for ClothingItem, Outfit]
-- UI: [TBD – SwiftUI views for capture, item detail, wardrobe grid, outfit builder]
-- Persistence, migrations, and sample data: [TBD]
-- Testing: [TBD – unit/UI tests coverage]
+### App Composition
+- App entry: `FashionApp.swift`
+- Root injects DI container and SwiftData model container:
+  - `.environment(\.container, DIContainer.shared)`
+  - `.modelContainer(for: [ClothingItemRecord.self])`
+- Navigation root: `ContentView` -> `container.makeClothingDetectionView(modelContext:)`
 
-## Near-Term Goals
-1. Solidify data model for clothing items and outfits
-2. Implement robust photo capture/selection flow
-3. Integrate Vision-based attribute extraction with graceful fallbacks
-4. Build wardrobe list/grid with filtering and search
-5. Create outfit composition UI and persistence
-6. Add basic onboarding and permissions education
-7. Seed with sample data for development/testing
+### Architecture
+- Layered flow is in use:
+  - DataSource -> Repository -> UseCase -> ViewModel -> SwiftUI View
+- DI container is centralized in `Core/DependencyInjection/Container.swift`
 
-## Non-Goals (for now)
-- Cloud sync or multi-device collaboration
+### Detection Pipeline
+- Input via `PhotosPicker` in `ClothingDetectionView`
+- Selected image is loaded as `Data` and downscaled (`ImageProcessor.downscaleImage`)
+- Detection uses Core ML model `best.mlmodel` through Vision
+- Domain mapping from observations to `ClothingItem` happens in `ClothingDetectionUseCase`
+- Confidence threshold filtering is in use case (`ImageProcessingRequest.confidenceThreshold`, default `0.4`)
+
+### Cropping Pipeline
+- Crop logic in `CoreImageCroppingDataSource`
+- Supports:
+  - Crop selected detected item
+  - Crop all detected items
+  - Show cropped images sheet (`CroppedImagesView`)
+
+### Wardrobe Persistence
+- SwiftData model: `ClothingItemRecord`
+- Repository: `SwiftDataClothingItemRepository`
+- Persisted fields currently include:
+  - `id`, `createdAt`, `photoAssetIdentifier`
+  - `label`, `confidence`
+  - bounding box + image size
+  - `thumbnailData` (small persisted thumbnail blob)
+
+### Saved Items UX (Implemented)
+- `ClothingDetectionViewModel` persists detected items after successful detection
+- Saved items are loaded into `savedItems` and shown as cards in `ClothingDetectionView`
+- Saved cards are tappable; tapping opens detail sheet with:
+  - cropped preview
+  - label, confidence, timestamp, asset identifier
+- Thumbnail strategy:
+  - Generate and persist thumbnail data at detection-save time
+  - Prefer persisted `thumbnailData` for saved cards
+  - Fallback to Photos-based crop when needed
+  - Fallback to placeholder image when source unavailable
+- Source-availability handling:
+  - Missing `PhotosPickerItem.itemIdentifier` falls back to synthetic `unavailable:<uuid>` identifier for persistence continuity
+  - Saved-item loading errors are surfaced via non-blocking status messaging, not global detection failure
+
+## Core Domain Model Snapshot
+- `ClothingItem` currently contains:
+  - `id: UUID`
+  - `label: String`
+  - `confidence: Float`
+  - `boundingBox: CGRect`
+  - `imageSize: CGSize`
+  - `createdAt: Date`
+  - `photoAssetIdentifier: String?`
+  - `thumbnailData: Data?`
+
+## Testing State
+- Test framework: Swift Testing (`import Testing`, `@Test`, `#expect`)
+- Active test target currently discovers 10 tests
+- Covered areas:
+  - Repository save/fetch/delete, ordering, metadata mapping, uniqueness semantics
+  - ViewModel persistence flow assertions
+  - Image cropping use case behavior
+  - Image downscaling behavior
+
+### Important Test-Discovery Caveat
+- There are duplicate test folder paths in project structure:
+  - `FashionApp/FashionApp/FashionAppTests`
+  - `FashionApp/FashionAppTests`
+- Active test plan currently runs tests under:
+  - `FashionApp/FashionApp/FashionAppTests/...`
+- Always verify discovery with `GetTestList` before assuming a new test file is running.
+
+## Known Risks / Constraints
+- SwiftData model changes (like added `thumbnailData`) can require local data reset if migration fails on existing installs.
+- Photos-backed source images can become unavailable if user deletes originals; UI should continue to degrade gracefully.
+- Thumbnail persistence is intentionally bounded and lossy (small JPEG) for performance/storage.
+
+## Near-Term Next Work (Suggested)
+1. Add explicit thumbnail size/quality constants and centralize them for tuning/telemetry.
+2. Add migration-safe handling strategy for SwiftData schema evolution.
+3. Add tests around thumbnail generation bounds/quality and fallback behavior.
+4. Add relink/replace flow for source-unavailable saved items.
+5. Begin wardrobe browsing/search/filtering and outfit model/persistence.
+
+## Non-Goals (Current)
+- Cloud sync/collaboration
 - Heavy third-party dependencies
-- Overly complex ML models beyond Apple’s Vision/Core ML unless necessary
+- Large/full-resolution image persistence in SwiftData
 
-## Technical Stack & Constraints
-- Language: Swift (prefer Swift 6+ idioms)
-- UI: SwiftUI
-- Concurrency: async/await, Task, actors as needed
-- Persistence: Core Data or SwiftData (prefer SwiftData if the codebase is already on it)
-- ML: Vision/Core ML for recognition
-- Media: Photos/Camera (PHPickerViewController or AVCapture)
-- Testing: Swift Testing or XCTest (use what the project already uses)
-- Platforms: iOS first; consider iPadOS-friendly layouts
-- Minimum iOS: [TBD based on project]
-
-## Data Model (initial draft)
-- ClothingItem
-  - id (UUID)
-  - createdAt (Date)
-  - photo (data or asset reference)
-  - category (e.g., “shirt”, “pants”, “shoes”)
-  - color(s) (string or structured)
-  - pattern (optional)
-  - brand (optional)
-  - notes (optional)
-  - tags [strings]
-- Outfit
-  - id (UUID)
-  - name (String)
-  - createdAt (Date)
-  - items: [ClothingItem]
-  - photo/thumbnail (optional)
-  - notes (optional)
-- Consider normalization for colors/tags if needed later.
-
-## UX Principles
-- Clear capture flow with immediate feedback
-- Respect user privacy; process on-device when possible
-- Make manual corrections easy (recognition won’t be perfect)
-- Empty states and onboarding that teach the workflow
-- Keyboard and VoiceOver friendly
-
-## Coding Conventions
-- Swift naming conventions; modules and types in PascalCase, variables in camelCase
-- Keep views small and composable; prefer MVVM-ish structure with observable view models
-- Use @MainActor for UI-bound types
-- Isolate Vision/ML in service types with testable interfaces
-- Avoid singletons except for clearly justified services (e.g., shared persistence)
-- Prefer dependency injection via initializers
-
-## Error Handling
-- Use Swift error types; bubble up with async throws
-- Convert to user-facing alerts where appropriate
-- Log non-fatal issues for debugging; avoid print in production code paths
-
-## Privacy & Permissions
-- Explain why camera/photos access is needed
-- Fail gracefully if permissions are denied
-- Keep images local unless explicitly shared
-
-## Performance
-- Defer heavy work off the main thread
-- Cache derived attributes if costly to compute
-- Use image thumbnails for lists/grids
-
-## Testing Strategy
-- Unit tests for data layer and recognition services (mock Vision outputs)
-- Snapshot/UI tests for key flows (capture, save item, build outfit)
-- Seed sample data in previews and tests
-
-## Open Questions (fill as we learn)
-- Which recognition attributes are reliable enough to auto-fill?
-- How do we handle duplicate items or near-duplicates?
-- Do we support multiple wardrobes or profiles?
-
-## Roadmap (High Level)
-- M1: Baseline capture + save item
-- M2: Vision attribute extraction + manual editing
-- M3: Wardrobe browsing + filtering
-- M4: Outfit builder + persistence
-- M5: Polish, accessibility, and onboarding
-- M6: Beta readiness tasks (app icon, App Store assets)
-
-## Maintainers Notes
-- This document is the single source of truth for AI assistants.
-- Keep it updated as architecture and features evolve.
-- If the workspace changes, keep PROMPT.md in the repo root so assistants can rehydrate context quickly.
+## Working Rules for Assistants
+- Keep this file up to date whenever architecture or behavior changes.
+- Prefer editing existing files over introducing parallel implementations.
+- If test behavior is surprising, confirm active tests with `GetTestList`.
+- If uncertain about runtime state, validate with tests/build before declaring completion.

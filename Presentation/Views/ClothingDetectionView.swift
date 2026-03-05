@@ -12,13 +12,15 @@ struct ClothingDetectionView: View {
     var body: some View {
         VStack(spacing: 20) {
             headerView
+
+            savedItemsSection
             
             if viewModel.isLoading || viewModel.isCropping {
                 loadingView
             } else {
                 contentView
             }
-            
+
             if let errorMessage = viewModel.errorMessage {
                 errorView(errorMessage)
             }
@@ -36,6 +38,16 @@ struct ClothingDetectionView: View {
                 .navigationTitle("Cropped Images")
                 .navigationBarTitleDisplayMode(.inline)
             }
+        }
+        .sheet(item: $viewModel.selectedSavedItemDetail, onDismiss: {
+            viewModel.clearSavedItemDetail()
+        }) { detail in
+            NavigationStack {
+                savedItemDetailView(detail)
+            }
+        }
+        .task {
+            await viewModel.loadSavedItems()
         }
     }
     
@@ -104,6 +116,107 @@ struct ClothingDetectionView: View {
         }
     }
     
+    // MARK: - Saved Items Section
+    private var savedItemsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Saved Items (\(viewModel.savedItems.count))")
+                .font(.headline)
+
+            if let statusMessage = viewModel.savedItemsStatusMessage {
+                Text(statusMessage)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            if viewModel.savedItems.isEmpty {
+                Text("No saved items yet")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.savedItems.prefix(12), id: \.id) { item in
+                            Button {
+                                Task {
+                                    await viewModel.showSavedItemDetail(for: item)
+                                }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    if let thumbnail = viewModel.savedItemThumbnails[item.id] {
+                                        Image(uiImage: thumbnail)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 84, height: 84)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.gray.opacity(0.15))
+                                            .frame(width: 84, height: 84)
+                                            .overlay {
+                                                Image(systemName: "photo")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                    }
+
+                                    Text(item.label)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+
+                                    Text(String(format: "%.0f%%", item.confidence * 100))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(width: 100, alignment: .leading)
+                                .padding(10)
+                                .background(Color.gray.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
+            if viewModel.isLoadingSavedItemDetail {
+                ProgressView("Loading item details...")
+                    .font(.caption)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func savedItemDetailView(_ detail: SavedItemDetail) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Image(uiImage: detail.croppedImage)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(radius: 4)
+
+                Group {
+                    Text("Label: \(detail.item.label)")
+                    Text(String(format: "Confidence: %.1f%%", detail.item.confidence * 100))
+                    Text("Saved: \(detail.item.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                    Text("Asset: \(detail.item.photoAssetIdentifier ?? "Unavailable")")
+                }
+                .font(.body)
+
+                if detail.isSourceUnavailable {
+                    Text("Original photo source is unavailable. Showing placeholder preview.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .navigationTitle("Saved Item")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
     // MARK: - Image View
     private func imageView(_ image: UIImage) -> some View {
         ZStack {
