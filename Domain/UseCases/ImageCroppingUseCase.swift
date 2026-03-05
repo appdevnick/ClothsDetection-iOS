@@ -68,24 +68,14 @@ class CoreImageCroppingDataSource: ImageCroppingDataSourceProtocol {
         let item = request.clothingItem
         let padding = request.padding
 
-        // Convert normalized coordinates to actual image coordinates.
+        // Convert normalized coordinates to image-space and clamp to source bounds.
         let imageSize = originalImage.size
-        let bbox = item.boundingBox
-
-        let cropRect = CGRect(
-            x: bbox.origin.x * imageSize.width - padding,
-            y: (1 - bbox.origin.y - bbox.size.height) * imageSize.height - padding,
-            width: bbox.size.width * imageSize.width + (padding * 2),
-            height: bbox.size.height * imageSize.height + (padding * 2)
+        let cropRect = BoundingBoxMapper.denormalizedRect(
+            from: item.boundingBox,
+            in: imageSize,
+            padding: padding
         )
-
-        // Clamp crop rect to the source image bounds.
-        let clampedRect = CGRect(
-            x: max(0, cropRect.origin.x),
-            y: max(0, cropRect.origin.y),
-            width: min(cropRect.width, imageSize.width - max(0, cropRect.origin.x)),
-            height: min(cropRect.height, imageSize.height - max(0, cropRect.origin.y))
-        )
+        let clampedRect = BoundingBoxMapper.clampedToImageBounds(cropRect, imageSize: imageSize)
 
         guard let cgImage = originalImage.cgImage,
               let croppedCGImage = cgImage.cropping(to: clampedRect) else {

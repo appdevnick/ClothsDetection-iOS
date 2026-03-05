@@ -3,7 +3,6 @@ import Vision
 
 struct CroppedImagesView: View {
     let croppedImages: [CroppedImage]
-    let onImageTap: (CroppedImage) -> Void
     @State private var selectedCroppedImage: CroppedImage?
     
     private let columns = [
@@ -173,8 +172,7 @@ struct CroppedImageDetailView: View {
     
     NavigationStack {
         CroppedImagesView(
-            croppedImages: [sampleCroppedImage],
-            onImageTap: { _ in }
+            croppedImages: [sampleCroppedImage]
         )
         .navigationTitle("Cropped Images")
         .navigationBarTitleDisplayMode(.inline)

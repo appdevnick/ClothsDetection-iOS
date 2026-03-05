@@ -3,7 +3,6 @@ import Vision
 
 struct DetectionBoxesOverlay: View {
     let items: [ClothingItem]
-    let imageSize: CGSize
     let selectedItem: ClothingItem?
     let onItemTap: (ClothingItem) -> Void
 
@@ -14,11 +13,9 @@ struct DetectionBoxesOverlay: View {
                 let containerSize = geometry.size
                 let isSelected = selectedItem?.id == item.id
                 
-                let rect = CGRect(
-                    x: bbox.origin.x * containerSize.width,
-                    y: (1 - bbox.origin.y - bbox.size.height) * containerSize.height,
-                    width: bbox.size.width * containerSize.width,
-                    height: bbox.size.height * containerSize.height
+                let rect = BoundingBoxMapper.denormalizedRect(
+                    from: bbox,
+                    in: containerSize
                 )
                 
                 Rectangle()

@@ -31,7 +31,7 @@ When changing behavior:
 - Root injects DI container and SwiftData model container:
   - `.environment(\.container, DIContainer.shared)`
   - `.modelContainer(for: [ClothingItemRecord.self])`
-- Navigation root: `ContentView` -> `container.makeClothingDetectionView(modelContext:)`
+- Navigation root: `Presentation/Views/ContentView.swift` -> `container.makeClothingDetectionView(modelContext:)`
 
 ### Architecture
 - Layered flow is in use:
@@ -47,6 +47,7 @@ When changing behavior:
 
 ### Cropping Pipeline
 - Crop logic in `CoreImageCroppingDataSource`
+- Bounding box coordinate conversion is centralized in `Core/Utils/BoundingBoxMapper.swift`
 - Supports:
   - Crop selected detected item
   - Crop all detected items
@@ -89,19 +90,18 @@ When changing behavior:
 
 ## Testing State
 - Test framework: Swift Testing (`import Testing`, `@Test`, `#expect`)
-- Active test target currently discovers 10 tests
+- Active test target currently discovers 13 tests
 - Covered areas:
   - Repository save/fetch/delete, ordering, metadata mapping, uniqueness semantics
-  - ViewModel persistence flow assertions
-  - Image cropping use case behavior
+  - ViewModel persistence and error-state flow assertions
+  - Image cropping use case behavior and datasource clamping
+  - Bounding box mapper coordinate conversion and clamping behavior
   - Image downscaling behavior
 
-### Important Test-Discovery Caveat
-- There are duplicate test folder paths in project structure:
-  - `FashionApp/FashionApp/FashionAppTests`
-  - `FashionApp/FashionAppTests`
-- Active test plan currently runs tests under:
+### Test Discovery
+- Canonical test path:
   - `FashionApp/FashionApp/FashionAppTests/...`
+- Active test plan currently runs tests from that path only.
 - Always verify discovery with `GetTestList` before assuming a new test file is running.
 
 ## Known Risks / Constraints

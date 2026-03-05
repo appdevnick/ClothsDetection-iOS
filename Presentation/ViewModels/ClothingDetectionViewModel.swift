@@ -38,7 +38,6 @@ class ClothingDetectionViewModel: ObservableObject {
         }
     }
     @Published var selectedImage: UIImage?
-    @Published var detectionResult: DetectionResult?
     @Published var savedItems: [ClothingItem] = []
     @Published var savedItemThumbnails: [UUID: UIImage] = [:]
     @Published var savedItemsStatusMessage: String?
@@ -136,7 +135,6 @@ class ClothingDetectionViewModel: ObservableObject {
                 imageSize: result.imageSize
             )
             viewState = .loaded(updatedResult)
-            detectionResult = updatedResult
         } catch let error as ClothingDetectionError {
             viewState = .error(error)
         } catch {
@@ -191,7 +189,6 @@ class ClothingDetectionViewModel: ObservableObject {
         viewState = .idle
         selectedImage = nil
         selectedItem = nil
-        detectionResult = nil
         croppedImages = []
         selectedClothingItem = nil
     }
@@ -310,16 +307,13 @@ class ClothingDetectionViewModel: ObservableObject {
 
     private func makeThumbnailData(for item: ClothingItem, sourceImage: UIImage) -> Data? {
         let imageSize = sourceImage.size
-        let bbox = item.boundingBox
+        let cropRect = BoundingBoxMapper.denormalizedRect(
+            from: item.boundingBox,
+            in: imageSize,
+            integral: true
+        )
 
-        let cropRect = CGRect(
-            x: bbox.origin.x * imageSize.width,
-            y: (1 - bbox.origin.y - bbox.size.height) * imageSize.height,
-            width: bbox.size.width * imageSize.width,
-            height: bbox.size.height * imageSize.height
-        ).integral
-
-        let boundedRect = cropRect.intersection(CGRect(origin: .zero, size: imageSize))
+        let boundedRect = BoundingBoxMapper.clampedToImageBounds(cropRect, imageSize: imageSize)
         guard !boundedRect.isNull,
               boundedRect.width > 1,
               boundedRect.height > 1,

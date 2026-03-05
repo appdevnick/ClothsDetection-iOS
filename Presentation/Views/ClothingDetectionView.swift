@@ -32,8 +32,7 @@ struct ClothingDetectionView: View {
         .sheet(isPresented: $showingCroppedImages) {
             NavigationStack {
                 CroppedImagesView(
-                    croppedImages: viewModel.croppedImages,
-                    onImageTap: { _ in }
+                    croppedImages: viewModel.croppedImages
                 )
                 .navigationTitle("Cropped Images")
                 .navigationBarTitleDisplayMode(.inline)
@@ -229,7 +228,6 @@ struct ClothingDetectionView: View {
             if !viewModel.clothingItems.isEmpty {
                 DetectionBoxesOverlay(
                     items: viewModel.clothingItems,
-                    imageSize: image.size,
                     selectedItem: viewModel.selectedClothingItem,
                     onItemTap: { item in
                         viewModel.selectClothingItem(item)
@@ -261,8 +259,8 @@ struct ClothingDetectionView: View {
     // MARK: - Detection Info Overlay
     private var detectionInfoOverlay: some View {
         VStack(alignment: .trailing, spacing: 4) {
-            if let result = viewModel.detectionResult {
-                Text("\(result.items.count) items detected")
+            if !viewModel.clothingItems.isEmpty {
+                Text("\(viewModel.clothingItems.count) items detected")
                     .font(.caption)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

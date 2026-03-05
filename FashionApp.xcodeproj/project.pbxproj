@@ -7,9 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FD65AC6D2F5A265A0052CF3F /* ClothingItemRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD65AC6C2F5A265A0052CF3F /* ClothingItemRepositoryTests.swift */; };
-		FDF442202F5A020000C4864F /* ImageCroppingUseCaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF441EA2F59F6CE00C4864F /* ImageCroppingUseCaseTests.swift */; };
-		FDF442212F5A020000C4864F /* ImageProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF441EB2F59F6CE00C4864F /* ImageProcessorTests.swift */; };
+		A1B2C3012F60000100AAA001 /* ClothingItemRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3112F60000100AAA001 /* ClothingItemRepositoryTests.swift */; };
+		A1B2C3022F60000100AAA001 /* ImageCroppingUseCaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3122F60000100AAA001 /* ImageCroppingUseCaseTests.swift */; };
+		A1B2C3032F60000100AAA001 /* ImageProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3132F60000100AAA001 /* ImageProcessorTests.swift */; };
+		A1B2C3042F60000100AAA001 /* ClothingDetectionViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3142F60000100AAA001 /* ClothingDetectionViewModelTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -23,16 +24,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		7B2B6BE02E1AB74B002CA110 /* FashionApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = FashionApp.app; path = /Users/nickmaxwell/Documents/FashionApp/build/Debug/FashionApp.app; sourceTree = "<absolute>"; };
-		FD65AC032F5A22910052CF3F /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
-		FD65AC4D2F5A25470052CF3F /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
-		FD65AC6C2F5A265A0052CF3F /* ClothingItemRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingItemRepositoryTests.swift; sourceTree = "<group>"; };
-		FDF441572F59ECAD00C4864F /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
-		FDF441C92F59F0AA00C4864F /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
-		FDF441EA2F59F6CE00C4864F /* ImageCroppingUseCaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCroppingUseCaseTests.swift; sourceTree = "<group>"; };
-		FDF441EB2F59F6CE00C4864F /* ImageProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessorTests.swift; sourceTree = "<group>"; };
-		FDF442222F5A020000C4864F /* FashionAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = FashionAppTests.xctest; path = /Users/nickmaxwell/Documents/FashionApp/build/Debug/PlugIns/FashionAppTests.xctest; sourceTree = "<absolute>"; };
-		FDF4431F2F59F83400C4864F /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
+		A1B2C3112F60000100AAA001 /* ClothingItemRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingItemRepositoryTests.swift; sourceTree = "<group>"; };
+		A1B2C3122F60000100AAA001 /* ImageCroppingUseCaseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCroppingUseCaseTests.swift; sourceTree = "<group>"; };
+		A1B2C3132F60000100AAA001 /* ImageProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessorTests.swift; sourceTree = "<group>"; };
+		A1B2C3142F60000100AAA001 /* ClothingDetectionViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingDetectionViewModelTests.swift; sourceTree = "<group>"; };
+		FD65AC792F5A364C0052CF3F /* FashionApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FashionApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD65AD712F5A386D0052CF3F /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
+		FDC6494C2F5A38C80023B897 /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
+		FDC649762F5A3AF50023B897 /* FashionAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FashionAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FDC6499E2F5A3AF50023B897 /* FashionApp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = FashionApp.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -65,41 +65,34 @@
 			isa = PBXGroup;
 			children = (
 				7B2B6BE22E1AB74B002CA110 /* FashionApp */,
-				FDF441E92F59F6AE00C4864F /* FashionAppTests */,
+				A1B2C3202F60000100AAA001 /* FashionAppTests */,
+				FD65AC792F5A364C0052CF3F /* FashionApp.app */,
+				FDC649762F5A3AF50023B897 /* FashionAppTests.xctest */,
 			);
 			sourceTree = "<group>";
 		};
-		FD65AC082F5A22910052CF3F /* Products */ = {
-			isa = PBXGroup;
-			name = Products;
-			sourceTree = "<group>";
-		};
-		FD65AC522F5A25470052CF3F /* Products */ = {
-			isa = PBXGroup;
-			name = Products;
-			sourceTree = "<group>";
-		};
-		FDF4415B2F59ECAD00C4864F /* Products */ = {
-			isa = PBXGroup;
-			name = Products;
-			sourceTree = "<group>";
-		};
-		FDF441CD2F59F0AA00C4864F /* Products */ = {
-			isa = PBXGroup;
-			name = Products;
-			sourceTree = "<group>";
-		};
-		FDF441E92F59F6AE00C4864F /* FashionAppTests */ = {
+		A1B2C3202F60000100AAA001 /* FashionAppTests */ = {
 			isa = PBXGroup;
 			children = (
-				FDF441EA2F59F6CE00C4864F /* ImageCroppingUseCaseTests.swift */,
-				FDF441EB2F59F6CE00C4864F /* ImageProcessorTests.swift */,
-				FD65AC6C2F5A265A0052CF3F /* ClothingItemRepositoryTests.swift */,
+				A1B2C3112F60000100AAA001 /* ClothingItemRepositoryTests.swift */,
+				A1B2C3122F60000100AAA001 /* ImageCroppingUseCaseTests.swift */,
+				A1B2C3132F60000100AAA001 /* ImageProcessorTests.swift */,
+				A1B2C3142F60000100AAA001 /* ClothingDetectionViewModelTests.swift */,
 			);
 			path = FashionAppTests;
 			sourceTree = "<group>";
 		};
-		FDF443232F59F83400C4864F /* Products */ = {
+		FD65AD752F5A386D0052CF3F /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FDC649502F5A38C80023B897 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FDC649A22F5A3AF50023B897 /* Products */ = {
 			isa = PBXGroup;
 			name = Products;
 			sourceTree = "<group>";
@@ -126,7 +119,7 @@
 			packageProductDependencies = (
 			);
 			productName = FashionApp;
-			productReference = 7B2B6BE02E1AB74B002CA110 /* FashionApp.app */;
+			productReference = FD65AC792F5A364C0052CF3F /* FashionApp.app */;
 			productType = "com.apple.product-type.application";
 		};
 		FDF442252F5A020000C4864F /* FashionAppTests */ = {
@@ -145,7 +138,7 @@
 			packageProductDependencies = (
 			);
 			productName = FashionAppTests;
-			productReference = FDF442222F5A020000C4864F /* FashionAppTests.xctest */;
+			productReference = FDC649762F5A3AF50023B897 /* FashionAppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -177,24 +170,16 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = FD65AC522F5A25470052CF3F /* Products */;
-					ProjectRef = FD65AC4D2F5A25470052CF3F /* FashionApp.xcodeproj */;
+					ProductGroup = FDC649A22F5A3AF50023B897 /* Products */;
+					ProjectRef = FDC6499E2F5A3AF50023B897 /* FashionApp.xcodeproj */;
 				},
 				{
-					ProductGroup = FD65AC082F5A22910052CF3F /* Products */;
-					ProjectRef = FD65AC032F5A22910052CF3F /* FashionApp.xcodeproj */;
+					ProductGroup = FDC649502F5A38C80023B897 /* Products */;
+					ProjectRef = FDC6494C2F5A38C80023B897 /* FashionApp.xcodeproj */;
 				},
 				{
-					ProductGroup = FDF4415B2F59ECAD00C4864F /* Products */;
-					ProjectRef = FDF441572F59ECAD00C4864F /* FashionApp.xcodeproj */;
-				},
-				{
-					ProductGroup = FDF441CD2F59F0AA00C4864F /* Products */;
-					ProjectRef = FDF441C92F59F0AA00C4864F /* FashionApp.xcodeproj */;
-				},
-				{
-					ProductGroup = FDF443232F59F83400C4864F /* Products */;
-					ProjectRef = FDF4431F2F59F83400C4864F /* FashionApp.xcodeproj */;
+					ProductGroup = FD65AD752F5A386D0052CF3F /* Products */;
+					ProjectRef = FD65AD712F5A386D0052CF3F /* FashionApp.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -227,9 +212,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FD65AC6D2F5A265A0052CF3F /* ClothingItemRepositoryTests.swift in Sources */,
-				FDF442202F5A020000C4864F /* ImageCroppingUseCaseTests.swift in Sources */,
-				FDF442212F5A020000C4864F /* ImageProcessorTests.swift in Sources */,
+				A1B2C3042F60000100AAA001 /* ClothingDetectionViewModelTests.swift in Sources */,
+				A1B2C3012F60000100AAA001 /* ClothingItemRepositoryTests.swift in Sources */,
+				A1B2C3022F60000100AAA001 /* ImageCroppingUseCaseTests.swift in Sources */,
+				A1B2C3032F60000100AAA001 /* ImageProcessorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

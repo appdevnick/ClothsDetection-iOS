@@ -20,7 +20,4 @@ class ImageProcessor {
         return newImage
     }
     
-    static func processImageData(_ data: Data) -> UIImage? {
-        return UIImage(data: data)
-    }
 }
