@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct ClothesDetectionDemoApp: App {
+struct FashionApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

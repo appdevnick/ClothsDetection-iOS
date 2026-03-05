@@ -28,7 +28,7 @@ struct ClothingDetectionView: View {
         .padding()
         .navigationTitle("Clothing Detection")
         .sheet(isPresented: $showingCroppedImages) {
-            NavigationView {
+            NavigationStack {
                 CroppedImagesView(
                     croppedImages: viewModel.croppedImages,
                     onImageTap: { _ in }

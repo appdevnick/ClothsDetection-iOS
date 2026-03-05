@@ -103,7 +103,7 @@ struct CroppedImageDetailView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 20) {
                 // Large image display
                 Image(uiImage: croppedImage.image)
@@ -171,7 +171,7 @@ struct CroppedImageDetailView: View {
         cropRect: CGRect(x: 0, y: 0, width: 100, height: 100)
     )
     
-    NavigationView {
+    NavigationStack {
         CroppedImagesView(
             croppedImages: [sampleCroppedImage],
             onImageTap: { _ in }
