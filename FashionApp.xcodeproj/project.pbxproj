@@ -6,14 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FDF440FF2F59EB3900C4864F /* PROMPT.md in Resources */ = {isa = PBXBuildFile; fileRef = FDF440FE2F59EB3200C4864F /* PROMPT.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		7B2B6BE02E1AB74B002CA110 /* ClothesDetectionDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClothesDetectionDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FDF440FE2F59EB3200C4864F /* PROMPT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PROMPT.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7B2B6BE22E1AB74B002CA110 /* ClothesDetectionDemo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ClothesDetectionDemo;
+			path = "";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +37,7 @@
 		7B2B6BD72E1AB74B002CA110 = {
 			isa = PBXGroup;
 			children = (
+				FDF440FE2F59EB3200C4864F /* PROMPT.md */,
 				7B2B6BE22E1AB74B002CA110 /* ClothesDetectionDemo */,
 				7B2B6BE12E1AB74B002CA110 /* Products */,
 			);
@@ -85,7 +91,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 7B2B6BDB2E1AB74B002CA110 /* Build configuration list for PBXProject "ClothesDetectionDemo" */;
+			buildConfigurationList = 7B2B6BDB2E1AB74B002CA110 /* Build configuration list for PBXProject "FashionApp" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -109,6 +115,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FDF440FF2F59EB3900C4864F /* PROMPT.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -250,7 +257,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ClothesDetectionDemo/ClothesDetectionDemo.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ClothesDetectionDemo.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -294,7 +301,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ClothesDetectionDemo/ClothesDetectionDemo.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ClothesDetectionDemo.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -336,7 +343,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7B2B6BDB2E1AB74B002CA110 /* Build configuration list for PBXProject "ClothesDetectionDemo" */ = {
+		7B2B6BDB2E1AB74B002CA110 /* Build configuration list for PBXProject "FashionApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7B2B6BEA2E1AB74E002CA110 /* Debug */,

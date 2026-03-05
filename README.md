@@ -1,145 +1,260 @@
-# Clothes Detection Demo
+//
+//  ContentView.swift
+//  FashionApp
+//
+//  Created by User on 2026-03-05.
+//
 
-This project follows Clean Architecture principles with SwiftUI and Combine.
+import SwiftUI
+import Vision
+import PhotosUI
 
-## Demo
+struct ContentView: View {
+    @State private var image: UIImage?
+    @State private var detectedBoxes: [VNRectangleObservation] = []
+    @State private var selectedBoxes: Set<Int> = []
+    @State private var croppedImages: [UIImage] = []
+    @State private var isShowingImagePicker = false
+    @State private var isShowingCroppedResults = false
+    
+    private let imageCropper = ImageCropper()
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                if let image {
+                    GeometryReader { geo in
+                        ZStack {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: geo.size.width, height: geo.size.height)
+                                .clipped()
+                            
+                            ForEach(detectedBoxes.indices, id: \.self) { index in
+                                let box = detectedBoxes[index]
+                                BoxView(box: box, imageSize: image.size, containerSize: geo.size)
+                                    .onTapGesture {
+                                        toggleSelection(index)
+                                    }
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .stroke(selectedBoxes.contains(index) ? Color.red : Color.yellow, lineWidth: 3)
+                                    )
+                            }
+                        }
+                    }
+                    .padding()
+                    
+                    if !detectedBoxes.isEmpty {
+                        HStack {
+                            Button("Crop Selected") {
+                                cropSelected()
+                            }
+                            .disabled(selectedBoxes.isEmpty)
+                            Spacer()
+                            Button("Crop All") {
+                                cropAll()
+                            }
+                        }
+                        .padding([.horizontal, .bottom])
+                    }
+                } else {
+                    Text("Pick an image to start")
+                        .foregroundColor(.secondary)
+                        .padding()
+                }
+                
+                Button("Pick Image") {
+                    isShowingImagePicker = true
+                }
+                .padding(.bottom)
+            }
+            .navigationTitle("FashionApp")
+            .sheet(isPresented: $isShowingImagePicker) {
+                ImagePicker(image: $image, onDismiss: detectClothing)
+            }
+            .sheet(isPresented: $isShowingCroppedResults) {
+                CroppedResultsView(images: croppedImages)
+            }
+        }
+    }
+    
+    private func toggleSelection(_ index: Int) {
+        if selectedBoxes.contains(index) {
+            selectedBoxes.remove(index)
+        } else {
+            selectedBoxes.insert(index)
+        }
+    }
+    
+    private func detectClothing() {
+        guard let image else { return }
+        detectedBoxes.removeAll()
+        selectedBoxes.removeAll()
+        croppedImages.removeAll()
+        
+        let request = VNDetectHumanRectanglesRequest { request, error in
+            if let results = request.results as? [VNHumanObservation] {
+                DispatchQueue.main.async {
+                    detectedBoxes = results.map { observation in
+                        VNRectangleObservation(boundingBox: observation.boundingBox)
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    detectedBoxes = []
+                }
+            }
+        }
+        
+        guard let cgImage = image.cgImage else { return }
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        DispatchQueue.global(qos: .userInitiated).async {
+            try? handler.perform([request])
+        }
+    }
+    
+    private func cropSelected() {
+        guard let image else { return }
+        let indexes = selectedBoxes.sorted()
+        croppedImages = indexes.compactMap { idx in
+            guard idx < detectedBoxes.count else { return nil }
+            let box = detectedBoxes[idx]
+            return imageCropper.crop(image: image, boundingBox: box.boundingBox)
+        }
+        isShowingCroppedResults = true
+    }
+    
+    private func cropAll() {
+        guard let image else { return }
+        croppedImages = detectedBoxes.compactMap { box in
+            imageCropper.crop(image: image, boundingBox: box.boundingBox)
+        }
+        isShowingCroppedResults = true
+    }
+}
 
-https://github.com/user-attachments/assets/2591fc09-8c23-43dc-92ed-217b2b2bab33
+struct BoxView: View {
+    let box: VNRectangleObservation
+    let imageSize: CGSize
+    let containerSize: CGSize
+    
+    var body: some View {
+        // VNBoundingBox is normalized with origin bottom-left, but SwiftUI coordinate system origin is top-left
+        let rect = box.boundingBox
+        let width = rect.size.width * containerSize.width
+        let height = rect.size.height * containerSize.height
+        let x = rect.origin.x * containerSize.width
+        // Flip Y coordinate
+        let y = (1 - rect.origin.y - rect.size.height) * containerSize.height
+        
+        return Rectangle()
+            .frame(width: width, height: height)
+            .position(x: x + width / 2, y: y + height / 2)
+            .foregroundColor(.clear)
+    }
+}
 
-*Screen recording showing the complete workflow: image selection, clothing detection, item selection, cropping, and viewing cropped images.*
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    var onDismiss: () -> Void
 
-## Architecture Overview
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        var parent: ImagePicker
 
-The project follows a 3-layer Clean Architecture pattern:
+        init(parent: ImagePicker) {
+            self.parent = parent
+        }
 
-### 1. Domain Layer
-- **Entities**: `ClothingItem`, `DetectionResult`, `ImageProcessingRequest`
-- **Use Cases**: `ClothingDetectionUseCase` - Contains business logic for clothing detection
-- **Error Types**: `ClothingDetectionError` - Domain-specific error handling
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            picker.dismiss(animated: true)
+            guard let provider = results.first?.itemProvider else {
+                parent.onDismiss()
+                return
+            }
+            if provider.canLoadObject(ofClass: UIImage.self) {
+                provider.loadObject(ofClass: UIImage.self) { image, error in
+                    DispatchQueue.main.async {
+                        self.parent.image = image as? UIImage
+                        self.parent.onDismiss()
+                    }
+                }
+            } else {
+                parent.onDismiss()
+            }
+        }
+    }
 
-### 2. Data Layer
-- **Repositories**: `ClothingDetectionRepository` - Abstracts data access
-- **Data Sources**: `VisionClothingDetectionDataSource` - Handles Vision framework integration
-- **Utilities**: `ImageProcessor` - Image processing utilities
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(parent: self)
+    }
 
-### 3. Presentation Layer
-- **ViewModels**: `ClothingDetectionViewModel` - Manages UI state using Combine
-- **Views**: `ClothingDetectionView` - SwiftUI views with clean separation
-- **State Management**: Uses `@Published` properties and Combine publishers
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
+        config.selectionLimit = 1
+        config.filter = .images
 
-### 4. Core Layer
-- **Dependency Injection**: `DIContainer` - Manages dependencies and object lifecycle
-- **Environment**: SwiftUI environment for dependency injection
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = context.coordinator
 
-## Key Features
+        return picker
+    }
 
-### Clean Architecture Benefits
-- **Separation of Concerns**: Each layer has a single responsibility
-- **Testability**: Easy to unit test each layer independently
-- **Maintainability**: Changes in one layer don't affect others
-- **Scalability**: Easy to add new features or modify existing ones
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+}
 
-### SwiftUI + Combine Integration
-- **Reactive Programming**: Uses Combine publishers for data flow
-- **State Management**: `@Published` properties for UI updates
-- **Async Operations**: Proper handling of async image processing
-- **Error Handling**: Comprehensive error states and user feedback
+struct CroppedResultsView: View {
+    let images: [UIImage]
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 16)], spacing: 16) {
+                    ForEach(images.indices, id: \.self) { idx in
+                        Image(uiImage: images[idx])
+                            .resizable()
+                            .scaledToFit()
+                            .cornerRadius(8)
+                            .shadow(radius: 4)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Cropped Items")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
 
-### Enhanced UI Features
-- **Loading States**: Visual feedback during processing
-- **Error Handling**: User-friendly error messages with retry options
-- **Color-coded Detection**: Different colors for different clothing types
-- **Interactive Selection**: Tap on detected items to select them
-- **Image Cropping**: Crop individual items or all detected items
-- **Cropped Image Gallery**: View and manage all cropped images
-- **Modern UI**: Clean, modern SwiftUI interface
+class ImageCropper {
+    func crop(image: UIImage, boundingBox: CGRect) -> UIImage? {
+        guard let cgImage = image.cgImage else { return nil }
+        let width = CGFloat(cgImage.width)
+        let height = CGFloat(cgImage.height)
+        
+        // VN boundingBox origin is bottom-left, normalize to top-left
+        let rect = CGRect(
+            x: boundingBox.origin.x * width,
+            y: (1 - boundingBox.origin.y - boundingBox.size.height) * height,
+            width: boundingBox.size.width * width,
+            height: boundingBox.size.height * height
+        ).integral
+        
+        guard let croppedCgImage = cgImage.cropping(to: rect) else { return nil }
+        return UIImage(cgImage: croppedCgImage)
+    }
+}
 
-### Key Screenshots
-
-#### Main Detection Screen
-<img width="301" height="655" alt="Simulator Screenshot - iPhone 16 Pro - 2025-09-06 at 13 55 54" src="https://github.com/user-attachments/assets/cb73718a-ae14-43eb-807f-8389bf1aa816" />
-
-*Main interface showing image selection and detection controls*
-
-#### Detection Results
-<img width="301" height="655" alt="Simulator Screenshot - iPhone 16 Pro - 2025-09-06 at 13 56 00" src="https://github.com/user-attachments/assets/1b373146-9c2c-4aec-b6ee-b7bc8fbabe7b" />
-
-*Detected clothing items with color-coded bounding boxes*
-
-#### Cropped Images Gallery
-<img width="301" height="655" alt="Simulator Screenshot - iPhone 16 Pro - 2025-09-06 at 13 56 08" src="https://github.com/user-attachments/assets/0ddc532d-8dca-4ef1-a118-3c7035cdbf32" />
-
-*Gallery view of all cropped clothing items*
-
-#### Image Detail View
-<img width="301" height="655" alt="Simulator Screenshot - iPhone 16 Pro - 2025-09-06 at 13 56 15" src="https://github.com/user-attachments/assets/32178f9a-e430-4754-a777-bf497801f59f" />
-
-*Detailed view of individual cropped items with metadata*
-
-## Project Structure
-
-```
-ClothesDetectionDemo/
-├── Domain/
-│   ├── Entities/
-│   │   └── ClothingItem.swift
-│   └── UseCases/
-│       └── ClothingDetectionUseCase.swift
-├── Data/
-│   ├── Repositories/
-│   │   └── ClothingDetectionRepository.swift
-│   └── Utils/
-│       └── ImageProcessor.swift
-├── Presentation/
-│   ├── ViewModels/
-│   │   └── ClothingDetectionViewModel.swift
-│   └── Views/
-│       └── ClothingDetectionView.swift
-├── Core/
-│   └── DependencyInjection/
-│       └── Container.swift
-├── DetectionBoxesOverlay.swift
-├── ContentView.swift
-└── ClothesDetectionDemoApp.swift
-```
-
-## Usage
-
-The app automatically detects clothing items in selected images using Core ML and Vision frameworks. Key features include:
-
-### Detection & Cropping Workflow
-1. **Select Image**: Choose an image from your photo library
-2. **Automatic Detection**: The app detects clothing items with confidence scores
-3. **Interactive Selection**: Tap on any detected item to select it (highlighted in blue)
-4. **Crop Options**:
-   - **Crop Selected**: Crop only the currently selected item
-   - **Crop All Items**: Crop all detected clothing items at once
-5. **View Cropped Images**: Access the gallery of all cropped images
-6. **Image Details**: Tap on cropped images to view detailed information
-
-### Architecture Benefits
-1. **Easy Testing**: Each component can be tested in isolation
-2. **Flexible Data Sources**: Easy to swap Vision framework for other ML frameworks
-3. **Maintainable Code**: Clear separation between business logic and UI
-4. **Scalable Design**: Easy to add new features like batch processing or different detection models
-
-## Dependencies
-
-- SwiftUI
-- Combine
-- Vision
-- Core ML
-- PhotosUI
-
-## Future Enhancements
-
-The clean architecture makes it easy to add:
-- Unit tests for each layer
-- Different ML models
-- Batch image processing
-- Cloud-based detection services
-- Caching mechanisms
-- Analytics and logging
-- Image editing features
-- Export functionality for cropped images
-- Social sharing capabilities
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
+}
