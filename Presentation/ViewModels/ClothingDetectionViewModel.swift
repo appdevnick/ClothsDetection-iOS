@@ -52,6 +52,7 @@ class ClothingDetectionViewModel: ObservableObject {
     private let croppingUseCase: ImageCroppingUseCaseProtocol
     private let clothingItemRepository: ClothingItemRepositoryProtocol
     private var selectionTask: Task<Void, Never>?
+    private var originalSelectedImage: UIImage?
 
     // MARK: - Computed Properties
     var clothingItems: [ClothingItem] {
@@ -100,6 +101,7 @@ class ClothingDetectionViewModel: ObservableObject {
                 return
             }
 
+            originalSelectedImage = uiImage
             selectedImage = downscaledImage
             await detectClothing(in: downscaledImage, photoAssetIdentifier: item.itemIdentifier)
         } catch {
@@ -188,6 +190,7 @@ class ClothingDetectionViewModel: ObservableObject {
         selectionTask?.cancel()
         viewState = .idle
         selectedImage = nil
+        originalSelectedImage = nil
         selectedItem = nil
         croppedImages = []
         selectedClothingItem = nil
@@ -205,7 +208,7 @@ class ClothingDetectionViewModel: ObservableObject {
     }
 
     func cropSelectedItem() {
-        guard let image = selectedImage,
+        guard let image = originalSelectedImage ?? selectedImage,
               let item = selectedClothingItem else { return }
 
         Task {
@@ -226,7 +229,7 @@ class ClothingDetectionViewModel: ObservableObject {
     }
 
     func cropAllDetectedItems() {
-        guard let image = selectedImage else { return }
+        guard let image = originalSelectedImage ?? selectedImage else { return }
 
         Task {
             isCropping = true
@@ -290,8 +293,9 @@ class ClothingDetectionViewModel: ObservableObject {
     }
 
     private func enrichItemsWithThumbnails(_ items: [ClothingItem], sourceImage: UIImage) -> [ClothingItem] {
-        items.map { item in
-            let thumbnailData = makeThumbnailData(for: item, sourceImage: sourceImage)
+        let thumbnailSourceImage = originalSelectedImage ?? sourceImage
+        return items.map { item in
+            let thumbnailData = makeThumbnailData(for: item, sourceImage: thumbnailSourceImage)
             return ClothingItem(
                 id: item.id,
                 label: item.label,
@@ -392,4 +396,11 @@ class ClothingDetectionViewModel: ObservableObject {
             symbol?.draw(in: CGRect(origin: symbolOrigin, size: symbolSize))
         }
     }
+
+#if DEBUG
+    func setImagesForTesting(displayImage: UIImage?, originalImage: UIImage?) {
+        selectedImage = displayImage
+        originalSelectedImage = originalImage
+    }
+#endif
 }

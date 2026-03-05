@@ -51,6 +51,37 @@ struct ClothingDetectionViewModelTests {
 
         #expect(viewModel.savedItemsStatusMessage == "Saved items are temporarily unavailable.")
     }
+
+    @Test
+    func cropSelectedItemUsesOriginalImageResolutionWhenAvailable() async {
+        let downscaledImage = TestImageFactory.makeSolidImage(size: CGSize(width: 320, height: 240), color: .systemIndigo)
+        let originalImage = TestImageFactory.makeSolidImage(size: CGSize(width: 1920, height: 1440), color: .systemTeal)
+        let selectedItem = ClothingItem(
+            id: UUID(),
+            label: "shirt",
+            confidence: 0.9,
+            boundingBox: CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+            imageSize: downscaledImage.size
+        )
+        let repository = SpyClothingItemRepository()
+        let croppingUseCase = MockCroppingUseCase()
+        let viewModel = ClothingDetectionViewModel(
+            useCase: MockDetectionUseCase(result: DetectionResult(items: [selectedItem], processingTime: 0.01, imageSize: downscaledImage.size)),
+            croppingUseCase: croppingUseCase,
+            clothingItemRepository: repository
+        )
+
+        viewModel.setImagesForTesting(displayImage: downscaledImage, originalImage: originalImage)
+        viewModel.selectClothingItem(selectedItem)
+        viewModel.cropSelectedItem()
+
+        // Allow async task in cropSelectedItem to run.
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(croppingUseCase.capturedCropRequests.count == 1)
+        #expect(croppingUseCase.capturedCropRequests[0].originalImage.size == originalImage.size)
+        #expect(croppingUseCase.capturedCropRequests[0].clothingItem.id == selectedItem.id)
+    }
 }
 
 private enum TestImageFactory {
@@ -76,7 +107,10 @@ private final class MockDetectionUseCase: ClothingDetectionUseCaseProtocol {
 }
 
 private final class MockCroppingUseCase: ImageCroppingUseCaseProtocol {
+    var capturedCropRequests: [CropRequest] = []
+
     func cropImage(from request: CropRequest) async throws -> CroppedImage {
+        capturedCropRequests.append(request)
         CroppedImage(image: request.originalImage, sourceItem: request.clothingItem, cropRect: .zero)
     }
 

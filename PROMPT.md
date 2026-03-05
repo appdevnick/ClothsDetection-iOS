@@ -48,6 +48,7 @@ When changing behavior:
 ### Cropping Pipeline
 - Crop logic in `CoreImageCroppingDataSource`
 - Bounding box coordinate conversion is centralized in `Core/Utils/BoundingBoxMapper.swift`
+- Detection still runs on a downscaled image for speed, but crop/thumbnail generation now prefers the original-resolution source image for quality.
 - Supports:
   - Crop selected detected item
   - Crop all detected items
